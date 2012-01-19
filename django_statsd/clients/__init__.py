@@ -2,6 +2,7 @@ import socket
 
 from django.utils.importlib import import_module
 from django.conf import settings
+from django.core.signals import request_finished
 
 _statsd = None
 
@@ -16,5 +17,7 @@ def get_client():
 
 if not _statsd:
     _statsd = get_client()
+    if hasattr(_statsd, 'request_finished'):
+        request_finished.connect(_statsd.request_finished)
 
 statsd = _statsd
