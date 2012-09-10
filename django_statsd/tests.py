@@ -1,7 +1,9 @@
 import logging
 import sys
+import json
 
 from django.conf import settings
+from metlog.config import client_from_dict_config
 
 minimal = {
     'DATABASES': {
@@ -10,8 +12,9 @@ minimal = {
             'NAME': 'mydatabase'
         }
     },
-    'ROOT_URLCONF':'',
-    'STATSD_CLIENT': 'django_statsd.clients.null'
+    'ROOT_URLCONF': '',
+    'STATSD_CLIENT': 'django_statsd.clients.null',
+    'METLOG': None
 }
 
 if not settings.configured:
@@ -43,7 +46,6 @@ cfg = {
         },
     },
 }
-
 
 
 @mock.patch.object(middleware.statsd, 'incr')
@@ -133,6 +135,48 @@ class TestClient(unittest.TestCase):
         eq_(client.cache, {})
         client.incr('testing')
         eq_(client.cache, {'testing|count': [[1, 1]]})
+
+
+class TestMetlogClient(unittest.TestCase):
+    def test_metlog(self):
+        METLOG_CONF = {
+            'logger': 'django-statsd',
+            'sender': {
+                'class': 'metlog.senders.DebugCaptureSender',
+            },
+        }
+
+        metlog = client_from_dict_config(METLOG_CONF)
+        with mock.patch.object(settings, 'METLOG', metlog):
+            with mock.patch.object(settings, 'STATSD_CLIENT',
+                    'django_statsd.clients.moz_metlog'):
+
+                client = get_client()
+                eq_(client.__module__, 'django_statsd.clients.moz_metlog')
+
+    def test_metlog_send(self):
+        METLOG_CONF = {
+            'logger': 'django-statsd',
+            'sender': {
+                'class': 'metlog.senders.DebugCaptureSender',
+            },
+        }
+
+        metlog = client_from_dict_config(METLOG_CONF)
+        with mock.patch.object(settings, 'METLOG', metlog):
+            with mock.patch.object(settings, 'STATSD_CLIENT',
+                    'django_statsd.clients.moz_metlog'):
+
+                client = get_client()
+                eq_(len(client.metlog.sender.msgs), 0)
+                client.incr('testing')
+                eq_(len(client.metlog.sender.msgs), 1)
+
+                msg = json.loads(client.metlog.sender.msgs[0])
+                eq_(msg['severity'], 6)
+                eq_(msg['fields']['rate'], 1)
+                eq_(msg['fields']['name'], 'testing')
+                eq_(msg['type'], 'counter')
 
 
 # This is primarily for Zamboni, which loads in the custom middleware
