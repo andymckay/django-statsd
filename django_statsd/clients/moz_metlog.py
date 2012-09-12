@@ -7,10 +7,8 @@ class StatsClient(StatsClient):
 
     def __init__(self, *args, **kw):
         super(StatsClient, self).__init__(*args, **kw)
-        try:
-            self.metlog = settings.METLOG
-        except AttributeError:
-            raise (AttributeError,
+        if getattr(settings, 'METLOG', None) is None:
+            raise AttributeError(
                     "Metlog needs to be configured as settings.METLOG")
 
     def timing(self, stat, delta, rate=1):

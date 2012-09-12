@@ -4,6 +4,7 @@ import sys
 
 from django.conf import settings
 from nose.exc import SkipTest
+from nose import tools as nose_tools
 
 minimal = {
     'DATABASES': {
@@ -145,6 +146,12 @@ class TestMetlogClient(unittest.TestCase):
             return client_from_dict_config
         except ImportError:
             raise SkipTest("Metlog is not installed")
+
+    @nose_tools.raises(AttributeError)
+    def test_no_metlog(self):
+        with mock.patch.object(settings, 'STATSD_CLIENT',
+                'django_statsd.clients.moz_metlog'):
+            get_client()
 
     def test_get_client(self):
         client_from_dict_config = self.check_metlog()
