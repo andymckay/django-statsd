@@ -1,9 +1,9 @@
+import json
 import logging
 import sys
-import json
 
 from django.conf import settings
-from metlog.config import client_from_dict_config
+from nose.exc import SkipTest
 
 minimal = {
     'DATABASES': {
@@ -138,7 +138,17 @@ class TestClient(unittest.TestCase):
 
 
 class TestMetlogClient(unittest.TestCase):
-    def test_metlog(self):
+
+    def check_metlog(self):
+        try:
+            from metlog.config  import client_from_dict_config
+            return client_from_dict_config
+        except ImportError:
+            raise SkipTest("Metlog is not installed")
+
+    def test_get_client(self):
+        client_from_dict_config = self.check_metlog()
+
         METLOG_CONF = {
             'logger': 'django-statsd',
             'sender': {
@@ -154,7 +164,11 @@ class TestMetlogClient(unittest.TestCase):
                 client = get_client()
                 eq_(client.__module__, 'django_statsd.clients.moz_metlog')
 
-    def test_metlog_send(self):
+    def test_metlog_incr(self):
+        client_from_dict_config = self.check_metlog()
+
+        # Need to load within the test in case metlog is not installed
+        from metlog.config import client_from_dict_config
         METLOG_CONF = {
             'logger': 'django-statsd',
             'sender': {
@@ -174,9 +188,70 @@ class TestMetlogClient(unittest.TestCase):
 
                 msg = json.loads(client.metlog.sender.msgs[0])
                 eq_(msg['severity'], 6)
+                eq_(msg['payload'], '1')
                 eq_(msg['fields']['rate'], 1)
                 eq_(msg['fields']['name'], 'testing')
                 eq_(msg['type'], 'counter')
+
+    def test_metlog_decr(self):
+        client_from_dict_config = self.check_metlog()
+
+        # Need to load within the test in case metlog is not installed
+        from metlog.config import client_from_dict_config
+
+        METLOG_CONF = {
+            'logger': 'django-statsd',
+            'sender': {
+                'class': 'metlog.senders.DebugCaptureSender',
+            },
+        }
+
+        metlog = client_from_dict_config(METLOG_CONF)
+        with mock.patch.object(settings, 'METLOG', metlog):
+            with mock.patch.object(settings, 'STATSD_CLIENT',
+                    'django_statsd.clients.moz_metlog'):
+
+                client = get_client()
+                eq_(len(client.metlog.sender.msgs), 0)
+                client.decr('testing')
+                eq_(len(client.metlog.sender.msgs), 1)
+
+                msg = json.loads(client.metlog.sender.msgs[0])
+                eq_(msg['severity'], 6)
+                eq_(msg['payload'], '-1')
+                eq_(msg['fields']['rate'], 1)
+                eq_(msg['fields']['name'], 'testing')
+                eq_(msg['type'], 'counter')
+
+    def test_metlog_timing(self):
+        client_from_dict_config = self.check_metlog()
+
+        # Need to load within the test in case metlog is not installed
+        from metlog.config import client_from_dict_config
+
+        METLOG_CONF = {
+            'logger': 'django-statsd',
+            'sender': {
+                'class': 'metlog.senders.DebugCaptureSender',
+            },
+        }
+
+        metlog = client_from_dict_config(METLOG_CONF)
+        with mock.patch.object(settings, 'METLOG', metlog):
+            with mock.patch.object(settings, 'STATSD_CLIENT',
+                    'django_statsd.clients.moz_metlog'):
+
+                client = get_client()
+                eq_(len(client.metlog.sender.msgs), 0)
+                client.timing('testing', 512, rate=2)
+                eq_(len(client.metlog.sender.msgs), 1)
+
+                msg = json.loads(client.metlog.sender.msgs[0])
+                eq_(msg['severity'], 6)
+                eq_(msg['payload'], '512')
+                eq_(msg['fields']['rate'], 2)
+                eq_(msg['fields']['name'], 'testing')
+                eq_(msg['type'], 'timer')
 
 
 # This is primarily for Zamboni, which loads in the custom middleware

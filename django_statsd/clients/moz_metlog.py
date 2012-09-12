@@ -1,4 +1,5 @@
 from statsd.client import StatsClient
+from django.conf import settings
 
 
 class StatsClient(StatsClient):
@@ -7,18 +8,10 @@ class StatsClient(StatsClient):
     def __init__(self, *args, **kw):
         super(StatsClient, self).__init__(*args, **kw)
         try:
-            from django.conf import settings
             self.metlog = settings.METLOG
-        except (ImportError, AttributeError):
-            METLOG_CONF = {
-                'logger': 'django-statsd',
-                'sender': {
-                    'class': 'metlog.senders.logging.StdLibLoggingSender',
-                    'logger_name': None
-                },
-            }
-            from metlog.config import client_from_dict_config
-            self.metlog = client_from_dict_config(METLOG_CONF)
+        except AttributeError:
+            raise (AttributeError,
+                    "Metlog needs to be configured as settings.METLOG")
 
     def timing(self, stat, delta, rate=1):
         """Send new timing information. `delta` is in milliseconds."""
