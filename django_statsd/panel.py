@@ -37,6 +37,7 @@ def times(stats):
                         max(1, (stat[2] / float(length)) * 100),
                         stat[2],
                         ])
+    results.sort(key=lambda r: r[1])
     return results
 
 
