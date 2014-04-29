@@ -2,6 +2,30 @@
   data-graphite="{{ graphite }}"
   data-roots-timers="{% for root in timers %}{{ root }}{% if not forloop.last %}|{% endif %}{% endfor %}"
   data-roots-counts="{% for root in counts %}{{ root }}{% if not forloop.last %}|{% endif %}{% endfor %}">
+<table id="timings-summary">
+  <thead>
+    <tr>
+      <th>Stat</th>
+      <th>count</th>
+      <th>sum</th>
+      <th>lower</th>
+      <th>mean</th>
+      <th>upper</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for value in timings_summary %}
+    <tr>
+      <td><a href="#" class="statsd" data-key="{{ value.stat }}" data-type="timing">{{ value.stat }}</a></td>
+      <td>{{ value.count }}</td>
+      <td>{{ value.sum }}</td>
+      <td>{{ value.lower }}</td>
+      <td>{{ value.mean|floatformat:"2" }}</td>
+      <td>{{ value.upper }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 <table id="timings">
   <thead>
     <tr>

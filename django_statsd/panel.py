@@ -5,6 +5,7 @@ from django.utils.translation import ugettext_lazy as _, ungettext
 from debug_toolbar.panels import DebugPanel
 from django_statsd.clients import statsd
 
+from collections import defaultdict
 
 def munge(stats):
     # Munge the stats back into something easy for a template.
@@ -46,6 +47,32 @@ def times(stats):
                         ])
     return results
 
+def times_summary(stats):
+    results = []
+    if not stats:
+        return results
+
+    timings = defaultdict(list)
+    for stat in stats:
+        timings[stat[0].split('|')[0]].append(stat[2])
+
+    for stat, v in timings.iteritems():
+        if not v:
+            continue
+        v.sort()
+        count = len(v)
+        vmin, vmax = v[0], v[-1]
+        vsum = sum(v)
+        mean = vsum / float(count)
+        results.append({
+            'stat': stat,
+            'count': count,
+            'sum': vsum,
+            'lower': vmin,
+            'upper': vmax,
+            'mean': mean,
+            })
+    return results
 
 class StatsdPanel(DebugPanel):
 
@@ -83,4 +110,5 @@ class StatsdPanel(DebugPanel):
         context['graphite'] = config.get('graphite')
         context['statsd'] = munge(self.statsd.cache)
         context['timings'] = times(self.statsd.timings)
+        context['timings_summary'] = times_summary(self.statsd.timings)
         return render_to_string('toolbar_statsd/statsd.html', context)
