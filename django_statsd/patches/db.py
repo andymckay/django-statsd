@@ -21,19 +21,24 @@ def __getattr__(self, attr):
         return self.__dict__[attr]
     else:
         if attr in ['execute', 'executemany']:
-            return wrap(getattr(self.cursor, attr), key(self.db, attr))
+            def wrapped(query, *args, **kwargs):
+                query_type = (query.split(None, 1) or ['__empty__'])[0].lower()
+                return wrap(getattr(self.cursor, attr), key(self.db, "%s.%s" % (attr, query_type)))(query, *args, **kwargs)
+            return wrapped
         return getattr(self.cursor, attr)
 
 
 def wrap_class(base):
     class Wrapper(base):
-        def execute(self, *args, **kw):
+        def execute(self, query, *args, **kw):
+            query_type = (query.split(None, 1) or ['__empty__'])[0].lower()
             return wrap(super(Wrapper, self).execute,
-                        key(self.db, 'execute'))(*args, **kw)
+                        key(self.db, 'execute.%s' % query_type))(query, *args, **kw)
 
-        def executemany(self, *args, **kw):
+        def executemany(self, query, *args, **kw):
+            query_type = (query.split(None, 1) or ['__empty__'])[0].lower()
             return wrap(super(Wrapper, self).executemany,
-                        key(self.db, 'executemany'))(*args, **kw)
+                        key(self.db, 'executemany.%s' % query_type))(query, *args, **kw)
 
     return Wrapper
 
