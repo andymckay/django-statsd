@@ -163,6 +163,51 @@ class TestClient(unittest.TestCase):
         eq_(client.cache, {'testing|count': [[1, 1]]})
 
 
+
+class TestRequestAggregateClient(TestCase):
+    statsd_client = 'django_statsd.clients.request_aggregate'
+
+    def setUp(self):
+        self.original_statsd = middleware.statsd
+        with self.settings(STATSD_CLIENT=self.statsd_client):
+            middleware.statsd = get_client()
+        self.req = RequestFactory().get('/')
+        self.res = HttpResponse()
+
+    def tearDown(self):
+        middleware.statsd = self.original_statsd
+
+    def test_request_timing(self):
+        func = lambda x: x
+        with mock.patch.object(middleware.statsd, 'timing') as timing:
+            gmw = middleware.GraphiteRequestTimingMiddleware()
+
+            gmw.process_view(self.req, func, tuple(), dict())
+            self.req.stats_timings = {'test': 0}
+            gmw.process_response(self.req, self.res)
+        eq_(timing.call_count, 6)
+        names = ['view.%s.%s.GET' % (func.__module__, func.__name__),
+                 'view.%s.GET' % func.__module__,
+                 'view.GET']
+        names += ['{0}.test'.format(n) for n in names]
+        for expected, (args, kwargs) in zip(names, timing.call_args_list):
+            eq_(expected, args[0])
+
+    def test_request_timing_exception(self):
+        func = lambda x: x
+        with mock.patch.object(middleware.statsd, 'timing') as timing:
+            gmw = middleware.GraphiteRequestTimingMiddleware()
+            gmw.process_view(self.req, func, tuple(), dict())
+            self.req.stats_timings = {'test': 0}
+            gmw.process_exception(self.req, self.res)
+        eq_(timing.call_count, 6)
+        names = ['view.%s.%s.GET' % (func.__module__, func.__name__),
+                 'view.%s.GET' % func.__module__,
+                 'view.GET']
+        names += ['{0}.test'.format(n) for n in names]
+        for expected, (args, kwargs) in zip(names, timing.call_args_list):
+            eq_(expected, args[0])
+
 class TestMetlogClient(TestCase):
 
     def check_metlog(self):

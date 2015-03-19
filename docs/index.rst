@@ -111,9 +111,19 @@ First off, pick your client, one of:
   Use for the django debug toolbar, stores all the statsd pings on the request
   so they can be used in the toolbar.
 
+- django_statsd.clients.request_aggregate_toolbar
+
+  Django debug toolbar integration with the request_aggregate client (see
+  below).
+
 - django_statsd.clients.normal
 
   Use this for production, it just passes through to the real actual pystatsd.
+
+- django_statsd.clients.request_aggregate
+
+  The default statsd client modified to aggregate data per request. Useful for
+  knowing how much total time was spent in db or cache per request.
 
 - django_statsd.clients.log
 

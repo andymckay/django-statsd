@@ -1,3 +1,4 @@
+from collections import defaultdict
 import inspect
 import time
 
@@ -35,6 +36,11 @@ class GraphiteRequestTimingMiddleware(object):
         except AttributeError:
             pass
 
+        if hasattr(statsd, 'aggregate_request_stats'):
+            statsd.aggregate_request_stats.request = request
+            request.stats_timings = defaultdict(lambda: 0)
+            request.stats_counts = defaultdict(lambda: 0)
+
     def process_response(self, request, response):
         self._record_time(request)
         return response
@@ -47,9 +53,28 @@ class GraphiteRequestTimingMiddleware(object):
             ms = int((time.time() - request._start_time) * 1000)
             data = dict(module=request._view_module, name=request._view_name,
                         method=request.method)
-            statsd.timing('view.{module}.{name}.{method}'.format(**data), ms)
-            statsd.timing('view.{module}.{method}'.format(**data), ms)
-            statsd.timing('view.{method}'.format(**data), ms)
+            keys = [
+                'view.{module}.{name}.{method}'.format(**data),
+                'view.{module}.{method}'.format(**data),
+                'view.{method}'.format(**data),
+            ]
+            for key in keys:
+                statsd.timing(key, ms)
+            if hasattr(statsd, 'aggregate_request_stats'):
+                self._record_aggregate_time(request, keys)
+
+    def _record_aggregate_time(self, request, prefix_keys):
+        timings = getattr(request, "stats_timings", {})
+        counts = getattr(request, "stats_counts", {})
+        statsd.aggregate_request_stats.request = None
+
+        for key, value in timings.items():
+            for key_prefix in prefix_keys:
+                statsd.timing('.'.join([key_prefix, key]), value)
+
+        for key, value in counts.items():
+            for key_prefix in prefix_keys:
+                statsd.incr('.'.join([key_prefix, key]), value)
 
 
 class TastyPieRequestTimingMiddleware(GraphiteRequestTimingMiddleware):
