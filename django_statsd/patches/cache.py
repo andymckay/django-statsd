@@ -16,6 +16,10 @@ class StatsdTracker(BaseCache):
     def __getattribute__(self, attr):
         if attr == 'cache':
             return BaseCache.__getattribute__(self, attr)
+        # Don't wrap default_timeout in a functools.partial object (see wrap)
+        # This ensures compatibility with django-parler 1.6 under Django 1.9
+        if attr == 'default_timeout':
+            return self.cache.default_timeout
         return wrap(getattr(self.cache, attr), key(self.cache, attr))
 
 

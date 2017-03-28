@@ -2,3 +2,6 @@
 build
 dist
 mydatabase
+
+# Egg artifacts
+/*.egg-info
