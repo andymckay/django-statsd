@@ -92,7 +92,7 @@ def _process_boomerang(request):
 
     keys = {}
     for k in getattr(settings, 'STATSD_RECORD_KEYS', stick_keys):
-        v = request.GET.get(boomerang[k])
+        v = int(request.GET.get(boomerang[k]))
         if not v or v == 'undefined':
             continue
         if k in boomerang:
