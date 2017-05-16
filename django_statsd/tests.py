@@ -17,8 +17,8 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseForbidden
 from django.test import TestCase
 from django.test.client import RequestFactory
-from django.utils import dictconfig
-from django.utils import unittest
+from logutils import dictconfig
+import unittest
 
 import mock
 from nose.tools import eq_
@@ -567,7 +567,7 @@ class TestCursorWrapperPatching(TestCase):
     @mock.patch('django_statsd.patches.db.patched_callproc')
     @mock.patch('django_statsd.patches.db.patched_executemany')
     @mock.patch('django_statsd.patches.db.patched_execute')
-    @mock.patch('django.db.backends.util.CursorWrapper')
+    @mock.patch('django.db.backends.utils.CursorWrapper')
     @skipUnless(VERSION >= (1, 6, 0), "CursorWrapper Patching for Django>=1.6")
     def test_cursorwrapper_patching16(self,
                                       CursorWrapper,
