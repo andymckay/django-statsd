@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+import unittest
 
 from django.conf import settings
 from nose.exc import SkipTest
@@ -18,7 +19,6 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.test import TestCase
 from django.test.client import RequestFactory
 from django.utils import dictconfig
-from django.utils import unittest
 
 import mock
 from nose.tools import eq_

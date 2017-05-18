@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db.models.signals import post_save, post_delete
 from django_statsd.clients import statsd
 
-from .celery import register_celery_events
+from .celery_hooks import register_celery_events
 
 
 if getattr(settings, 'STATSD_CELERY_SIGNALS', False):
