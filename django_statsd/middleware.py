@@ -25,15 +25,17 @@ class GraphiteMiddleware(MiddlewareMixin):
 
     def process_response(self, request, response):
         statsd.incr('response.%s' % response.status_code)
-        if hasattr(request, 'user') and is_authenticated(request.user):
-            statsd.incr('response.auth.%s' % response.status_code)
+        if getattr(request, 'user', None):
+            if is_authenticated(request.user):
+                statsd.incr('response.auth.%s' % response.status_code)
         return response
 
     def process_exception(self, request, exception):
         if not isinstance(exception, Http404):
             statsd.incr('response.500')
-            if hasattr(request, 'user') and is_authenticated(request.user):
-                statsd.incr('response.auth.500')
+            if getattr(request, 'user', None):
+                if is_authenticated(request.user):
+                    statsd.incr('response.auth.500')
 
 
 class GraphiteRequestTimingMiddleware(MiddlewareMixin):
