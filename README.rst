@@ -2,7 +2,7 @@
 Django Statsd |Build Status|
 ============================
 
-Documentation is on `Read the Docs <https://django-statsd.readthedocs.org/>`_.
+Documentation is on `Read the Docs <https://django-stats.readthedocs.io/>`_.
 
 -------
 License
