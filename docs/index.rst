@@ -351,6 +351,19 @@ The middleware sends timing pings for the almost the same thing three times
 when accessing a view: `module.name.method`, `module.method` and `method` by
 default. Setting this to `False` just does the former.
 
+STATSD_VIEW_TIMER_IGNORED_PATTERNS (optional)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It's sometimes useful to make the view timer middleware ignore specific views, such
+as low-traffic admin pages. To do this, set the `STATSD_VIEW_TIMER_IGNORED_PATTERNS`
+setting to a list of view name patterns. For example, you can ignore the Django
+admin and admin docs views by configuring these patterns::
+
+    STATSD_VIEW_TIMER_IGNORED_PATTERNS = [
+        r'^django\.contrib\.admin\.',
+        r'^django\.contrib\.admindocs\.',
+    ]
+
 Logging errors
 ~~~~~~~~~~~~~~
 

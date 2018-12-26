@@ -1,9 +1,11 @@
 import inspect
 import time
+import re
 
 from django import VERSION as DJANGO_VERSION
 from django.conf import settings
 from django.http import Http404
+from django.utils.functional import cached_property
 
 from django_statsd.clients import statsd
 
@@ -62,10 +64,24 @@ class GraphiteRequestTimingMiddleware(MiddlewareMixin):
             ms = int((time.time() - request._start_time) * 1000)
             data = dict(module=request._view_module, name=request._view_name,
                         method=request.method)
+            if not self._should_record_time('{module}.{name}.{method}'.format(**data)):
+                return
             statsd.timing('view.{module}.{name}.{method}'.format(**data), ms)
             if getattr(settings, 'STATSD_VIEW_TIMER_DETAILS', True):
                 statsd.timing('view.{module}.{method}'.format(**data), ms)
                 statsd.timing('view.{method}'.format(**data), ms)
+
+    @cached_property
+    def _ignored_view_patterns(self):
+        ignored_patterns = getattr(settings, 'STATSD_VIEW_TIMER_IGNORED_PATTERNS', [])
+        return [re.compile(p) for p in ignored_patterns]
+
+    def _should_record_time(self, metric_name):
+        for pattern in self._ignored_view_patterns:
+            if pattern.search(metric_name):
+                return False
+        return True
+
 
 
 class TastyPieRequestTimingMiddleware(GraphiteRequestTimingMiddleware):
