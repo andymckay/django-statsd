@@ -12,6 +12,7 @@ setup(
     license='BSD',
     install_requires=['statsd >= 2.1.2, != 3.2 , <= 4.0'],
     packages=['django_statsd',
+              'django_statsd/handlers',
               'django_statsd/patches',
               'django_statsd/clients',
               'django_statsd/loggers',

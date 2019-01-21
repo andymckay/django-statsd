@@ -1,12 +1,5 @@
-from django.conf import settings
 from django.db.models.signals import post_save, post_delete
 from django_statsd.clients import statsd
-
-from .celery import register_celery_events
-
-
-if getattr(settings, 'STATSD_CELERY_SIGNALS', False):
-    register_celery_events()
 
 
 def model_save(sender, **kwargs):
@@ -35,6 +28,7 @@ def model_delete(sender, **kwargs):
         instance._meta.object_name,
     ))
 
-if getattr(settings, 'STATSD_MODEL_SIGNALS', False):
+
+def register_model_signals():
     post_save.connect(model_save)
     post_delete.connect(model_delete)

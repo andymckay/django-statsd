@@ -1,6 +1,7 @@
 from __future__ import absolute_import
-from django_statsd.clients import statsd
 import time
+from django_statsd.clients import statsd
+from celery import signals
 
 _task_start_times = {}
 
@@ -47,12 +48,7 @@ def on_task_failure(sender=None, task_id=None, task=None, **kwds):
 
 
 def register_celery_events():
-    try:
-        from celery import signals
-    except ImportError:
-        pass
-    else:
-        signals.task_sent.connect(on_task_sent)
-        signals.task_prerun.connect(on_task_prerun)
-        signals.task_postrun.connect(on_task_postrun)
-        signals.task_failure.connect(on_task_failure)
+    signals.task_sent.connect(on_task_sent)
+    signals.task_prerun.connect(on_task_prerun)
+    signals.task_postrun.connect(on_task_postrun)
+    signals.task_failure.connect(on_task_failure)
