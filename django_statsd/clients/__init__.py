@@ -1,13 +1,16 @@
-import socket
+import threading
+
+from statsd.client import StatsClient
+
+from django.conf import settings
+from django.utils.functional import lazy
 
 try:
     from importlib import import_module
 except ImportError:
     from django.utils.importlib import import_module
 
-from django.conf import settings
-
-_statsd = None
+thread_local = threading.local()
 
 
 def get(name, default):
@@ -28,7 +31,11 @@ def get_client():
     prefix = get('STATSD_PREFIX', None)
     return import_module(client).StatsClient(host=host, port=port, prefix=prefix)
 
-if not _statsd:
-    _statsd = get_client()
 
-statsd = _statsd
+def _get_client():
+    if not hasattr(thread_local, 'django_statsd_client'):
+        thread_local.django_statsd_client = get_client()
+    return thread_local.django_statsd_client
+
+
+statsd = lazy(_get_client, StatsClient)()
