@@ -107,6 +107,11 @@ class TestIncr(TestCase):
         gmw.process_exception(self.req, None)
         eq_(incr.call_count, 2)
 
+    def test_graphite_exception_authenticated_user_is_none(self, incr):
+        self.req.user = None
+        gmw = middleware.GraphiteMiddleware()
+        gmw.process_exception(self.req, None)
+        eq_(incr.call_count, 1)
 
 @mock.patch.object(middleware.statsd, 'timing')
 class TestTiming(unittest.TestCase):
