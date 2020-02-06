@@ -1,7 +1,4 @@
-try:
-    from django.db.backends import utils as util
-except ImportError:
-    from django.db.backends import util
+from django.db.backends import utils
 
 from django_statsd.patches.utils import wrap, patch_method
 from django_statsd.clients import statsd
@@ -35,6 +32,6 @@ def patch():
     The CursorWrapper is a pretty small wrapper around the cursor.  If
     you are NOT in debug mode, this is the wrapper that's used.
     """
-    patch_method(util.CursorWrapper, 'execute')(patched_execute)
-    patch_method(util.CursorWrapper, 'executemany')(patched_executemany)
-    patch_method(util.CursorWrapper, 'callproc')(patched_callproc)
+    patch_method(utils.CursorWrapper, 'execute')(patched_execute)
+    patch_method(utils.CursorWrapper, 'executemany')(patched_executemany)
+    patch_method(utils.CursorWrapper, 'callproc')(patched_callproc)

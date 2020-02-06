@@ -16,9 +16,14 @@ Credits:
 Changes
 -------
 
+0.5.0:
+
+- Django 1.11, 2.2, 3.0 support (other versions are dropped).
+- Python 2.7, 3.6, 3.7, 3.8 support (other versions are dropped).
+
 0.4.0:
 
-- Django 1.8, 1.9, 1.10, 1.11 support (other versions are droped).
+- Django 1.8, 1.9, 1.10, 1.11 support (other versions are dropped).
 
 0.3.15:
 

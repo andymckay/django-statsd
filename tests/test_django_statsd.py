@@ -8,10 +8,7 @@ from django.conf import settings
 from nose.exc import SkipTest
 from nose import tools as nose_tools
 
-try:
-    from django.urls import reverse
-except ImportError:
-    from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django import VERSION as DJANGO_VERSION
 from django.http import HttpResponse, HttpResponseForbidden
 from django.test import TestCase
@@ -84,10 +81,7 @@ class TestIncr(TestCase):
 
     def test_graphite_response_authenticated(self, incr):
         self.req.user = mock.Mock()
-        if DJANGO_VERSION < (1, 10):
-            self.req.user.is_authenticated.return_value = True
-        else:
-            self.req.user.is_authenticated = True
+        self.req.user.is_authenticated = True
         gmw = middleware.GraphiteMiddleware()
         gmw.process_response(self.req, self.res)
         eq_(incr.call_count, 2)
@@ -99,10 +93,7 @@ class TestIncr(TestCase):
 
     def test_graphite_exception_authenticated(self, incr):
         self.req.user = mock.Mock()
-        if DJANGO_VERSION < (1, 10):
-            self.req.user.is_authenticated.return_value = True
-        else:
-            self.req.user.is_authenticated = True
+        self.req.user.is_authenticated = True
         gmw = middleware.GraphiteMiddleware()
         gmw.process_exception(self.req, None)
         eq_(incr.call_count, 2)
@@ -200,13 +191,13 @@ class TestClient(unittest.TestCase):
         eq_(list(client.socket.payloads), [])
 
         client.incr('testing')
-        eq_(client.socket.recv(), 'testing:1|c')
+        assert client.socket.recv().startswith('testing:1|c')
 
         client.decr('testing')
-        eq_(client.socket.recv(), 'testing:-1|c')
+        assert client.socket.recv().startswith('testing:-1|c')
 
         client.timing('testing', 8)
-        eq_(client.socket.recv(), 'testing:8|ms')
+        assert client.socket.recv().startswith('testing:8|ms')
 
 
 class TestMetlogClient(TestCase):
@@ -344,16 +335,6 @@ class TestMetlogClient(TestCase):
             eq_(msg['type'], 'counter')
 
 
-def patch_middleware(klass):
-    if DJANGO_VERSION < (1, 10):
-        # This is primarily for Zamboni, which loads in the custom middleware
-        # classes, one of which, breaks posts to our url. Let's stop that.
-        return mock.patch.object(settings, 'MIDDLEWARE_CLASSES', [])(klass)
-
-    return klass
-
-
-@patch_middleware
 class TestRecord(TestCase):
 
     urls = 'django_statsd.urls'
