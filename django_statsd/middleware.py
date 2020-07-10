@@ -15,6 +15,15 @@ except ImportError:
         pass
 
 
+# Use timer that's not susceptible to time of day adjustments.
+try:
+    # perf_counter is only present on Py3.3+
+    from time import perf_counter as time_now
+except ImportError:
+    # fall back to using time
+    from time import time as time_now
+
+
 def is_authenticated(user):
     if DJANGO_VERSION < (1, 10):
         return user.is_authenticated()
@@ -46,7 +55,7 @@ class GraphiteRequestTimingMiddleware(MiddlewareMixin):
         try:
             request._view_module = view.__module__
             request._view_name = view.__name__
-            request._start_time = time.time()
+            request._start_time = time_now()
         except AttributeError:
             pass
 
@@ -59,7 +68,7 @@ class GraphiteRequestTimingMiddleware(MiddlewareMixin):
 
     def _record_time(self, request):
         if hasattr(request, '_start_time'):
-            ms = int((time.time() - request._start_time) * 1000)
+            ms = int((time_now() - request._start_time) * 1000)
             data = dict(module=request._view_module, name=request._view_name,
                         method=request.method)
             statsd.timing('view.{module}.{name}.{method}'.format(**data), ms)
@@ -75,7 +84,7 @@ class TastyPieRequestTimingMiddleware(GraphiteRequestTimingMiddleware):
         try:
             request._view_module = view_kwargs['api_name']
             request._view_name = view_kwargs['resource_name']
-            request._start_time = time.time()
+            request._start_time = time_now()
         except (AttributeError, KeyError):
             super(TastyPieRequestTimingMiddleware, self).process_view(
                 request, view_func, view_args, view_kwargs)
