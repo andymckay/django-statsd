@@ -18,7 +18,7 @@ Changes
 
 0.4.0:
 
-- Django 1.8, 1.9, 1.10, 1.11 support (other versions are droped).
+- Django 1.8, 1.9, 1.10, 1.11 support (other versions are dropped).
 
 0.3.15:
 
