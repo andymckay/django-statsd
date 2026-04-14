@@ -3,14 +3,16 @@ import time
 
 from django import VERSION as DJANGO_VERSION
 from django.conf import settings
+from django.core.exceptions import BadRequest, PermissionDenied, SuspiciousOperation
 from django.http import Http404
+from django.http.multipartparser import MultiPartParserError
 
 from django_statsd.clients import statsd
-
 
 try:
     from django.utils.deprecation import MiddlewareMixin
 except ImportError:
+
     class MiddlewareMixin(object):
         pass
 
@@ -22,18 +24,27 @@ def is_authenticated(user):
 
 
 class GraphiteMiddleware(MiddlewareMixin):
-
     def process_response(self, request, response):
-        statsd.incr('response.%s' % response.status_code)
-        if hasattr(request, 'user') and is_authenticated(request.user):
-            statsd.incr('response.auth.%s' % response.status_code)
+        statsd.incr("response.%s" % response.status_code)
+        if hasattr(request, "user") and is_authenticated(request.user):
+            statsd.incr("response.auth.%s" % response.status_code)
         return response
 
     def process_exception(self, request, exception):
-        if not isinstance(exception, Http404):
-            statsd.incr('response.500')
-            if hasattr(request, 'user') and is_authenticated(request.user):
-                statsd.incr('response.auth.500')
+        # Most exceptions that get here, are mapped to a 500 error. There are some exceptions (hehe) to that, they are
+        # listed here.
+        # See: https://github.com/django/django/blob/f0b75f46fd0ee98c10887b3c5dc4593d2bccf821/django/core/handlers/exception.py#L64
+        if not isinstance(
+            exception,
+            Http404
+            | PermissionDenied
+            | MultiPartParserError
+            | BadRequest
+            | SuspiciousOperation,
+        ):
+            statsd.incr("response.500")
+            if hasattr(request, "user") and is_authenticated(request.user):
+                statsd.incr("response.auth.500")
 
 
 class GraphiteRequestTimingMiddleware(MiddlewareMixin):
@@ -58,14 +69,17 @@ class GraphiteRequestTimingMiddleware(MiddlewareMixin):
         self._record_time(request)
 
     def _record_time(self, request):
-        if hasattr(request, '_start_time'):
+        if hasattr(request, "_start_time"):
             ms = int((time.time() - request._start_time) * 1000)
-            data = dict(module=request._view_module, name=request._view_name,
-                        method=request.method)
-            statsd.timing('view.{module}.{name}.{method}'.format(**data), ms)
-            if getattr(settings, 'STATSD_VIEW_TIMER_DETAILS', True):
-                statsd.timing('view.{module}.{method}'.format(**data), ms)
-                statsd.timing('view.{method}'.format(**data), ms)
+            data = dict(
+                module=request._view_module,
+                name=request._view_name,
+                method=request.method,
+            )
+            statsd.timing("view.{module}.{name}.{method}".format(**data), ms)
+            if getattr(settings, "STATSD_VIEW_TIMER_DETAILS", True):
+                statsd.timing("view.{module}.{method}".format(**data), ms)
+                statsd.timing("view.{method}".format(**data), ms)
 
 
 class TastyPieRequestTimingMiddleware(GraphiteRequestTimingMiddleware):
@@ -73,9 +87,10 @@ class TastyPieRequestTimingMiddleware(GraphiteRequestTimingMiddleware):
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         try:
-            request._view_module = view_kwargs['api_name']
-            request._view_name = view_kwargs['resource_name']
+            request._view_module = view_kwargs["api_name"]
+            request._view_name = view_kwargs["resource_name"]
             request._start_time = time.time()
         except (AttributeError, KeyError):
             super(TastyPieRequestTimingMiddleware, self).process_view(
-                request, view_func, view_args, view_kwargs)
+                request, view_func, view_args, view_kwargs
+            )
